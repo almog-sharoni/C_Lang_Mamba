@@ -1,7 +1,7 @@
 
 # Mamba-C: C Language Implementation of the Mamba Model for Keyword Spotting
 
-![Mamba-C Logo](https://via.placeholder.com/150) <!-- Replace with your project's logo if available -->
+
 
 ## Table of Contents
 
