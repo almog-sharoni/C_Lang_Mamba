@@ -166,3 +166,7 @@ void load_weights(const char* weight_file, int8_t* weights, int size) {
 
     fclose(wf);
 }
+
+float softplus(float x) {
+    return logf(1.0f + expf(x));
+}

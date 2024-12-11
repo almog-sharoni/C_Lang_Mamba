@@ -38,7 +38,7 @@ void initialize_weights() {
 
     // Load weights for in_proj
     load_weights("../weights/in_proj.weight_weights.txt", &in_proj_weights[0][0], D_MODEL * (D_INNER * 2));
-
+    
     // Load weights for conv1d
     load_weights("../weights/conv1d.weight_weights.txt", &conv1d_weights[0][0], D_INNER * D_CONV);
     load_weights("../weights/conv1d.bias_weights.txt", conv1d_bias, D_INNER);

@@ -107,10 +107,10 @@ int main() {
 
     write_output_to_file("data/output_c.txt", output, output_size);
 
-    // print all values of output
-    for (int i = 0; i < 4096; i++) {
-        printf("%d ", output[i]);
-    }
+    // // print all values of output
+    // for (int i = 0; i < 4096; i++) {
+    //     printf("%d ", output[i]);
+    // }
 
     free(input);
     free(output);

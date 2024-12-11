@@ -7,7 +7,7 @@
 #define D_INNER (D_MODEL * EXPAND)
 #define D_STATE 64
 #define D_CONV 64
-#define BATCH_SIZE 2
+#define BATCH_SIZE 32
 #define SEQ_LEN 128
 
 // New Parameters
@@ -16,9 +16,9 @@
 
 
 // Quantization Scales
-#define SCALE_IN 0.1f
+#define SCALE_IN 1.0f
 #define SCALE_WEIGHTS 10.0f
-#define SCALE_OUTPUT 0.1f
+#define SCALE_OUTPUT 1.0f
 
 // Standard Library Headers
 #include <stdio.h>
