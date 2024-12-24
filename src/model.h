@@ -25,13 +25,13 @@
 // int8_t dt_proj_bias[256];                    // [256]
 
 // Global Variables for Weights and Biases
-extern int8_t in_proj_weights[D_MODEL][D_INNER * 2];
-extern int8_t in_proj_bias[D_INNER * 2];
+extern int8_t in_proj_weights[D_INNER][D_MODEL];
+extern int8_t in_proj_bias[D_INNER];
 extern int8_t conv1d_weights[D_INNER][D_CONV];
 extern int8_t conv1d_bias[D_INNER];
 extern int8_t out_proj_weights[D_INNER][D_MODEL];
 extern int8_t out_proj_bias[D_MODEL];
-extern int8_t A_log[D_INNER];
+extern int8_t A_log[D_INNER][D_STATE];
 extern int8_t D[D_INNER];
 extern int8_t x_proj_weights[D_INNER][136];
 extern int8_t dt_proj_weights[256][8];

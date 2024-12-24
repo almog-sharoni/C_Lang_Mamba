@@ -7,6 +7,6 @@
 
 
 // Function Declaration
-void forward(int8_t* input, int8_t* output, int batch, int seqlen);
+void forward(int8_t* input, int8_t* output);
 
 #endif // FORWARD_H

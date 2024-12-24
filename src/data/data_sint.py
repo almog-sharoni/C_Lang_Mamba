@@ -5,7 +5,7 @@ D_INNER = D_MODEL * EXPAND
 D_STATE = 64
 D_CONV = 64
 BATCH_SIZE = 32
-SEQ_LEN = 128
+SEQ_LEN = 1024
 
 # Total size of the input
 total_size = BATCH_SIZE * SEQ_LEN * D_MODEL
