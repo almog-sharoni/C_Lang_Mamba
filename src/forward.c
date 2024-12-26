@@ -15,7 +15,7 @@
 #define CHECK_ALLOC(ptr) if (!(ptr)) { perror("Memory allocation failed"); exit(EXIT_FAILURE); }
 
 
-#define SCALE_SHIFT 2  // Scale factor (2^6 = 64)
+#define SCALE_SHIFT 4  // Scale factor (2^6 = 64)
 #define MAX_INT8 127
 #define MIN_INT8 -128
 
@@ -36,7 +36,7 @@ int8_t approximate_softplus(int8_t x) {
 void forward(int8_t* hidden_states, int8_t* output) {
     printf("Forward pass: BATCH_SIZE=%d, SEQ_LEN=%d, D_MODEL=%d, D_INNER=%d\n", BATCH_SIZE, SEQ_LEN, D_MODEL, D_INNER);
 
-    int8_t* xz = (int8_t*)malloc(BATCH_SIZE * SEQ_LEN * D_INNER  * sizeof(int8_t));
+    int8_t* xz = (int8_t*)malloc(BATCH_SIZE * SEQ_LEN * D_INNER * 2 * sizeof(int8_t));
     int8_t* x = (int8_t*)malloc(BATCH_SIZE * SEQ_LEN * D_INNER * sizeof(int8_t));
     int8_t* z = (int8_t*)malloc(BATCH_SIZE * SEQ_LEN * D_INNER * sizeof(int8_t));
     int8_t* conv_output = (int8_t*)malloc(BATCH_SIZE * SEQ_LEN * D_INNER * sizeof(int8_t));
@@ -61,42 +61,44 @@ void forward(int8_t* hidden_states, int8_t* output) {
     CHECK_ALLOC(x_proj_output);
 
 
-    printf("Expanding hidden_states...\n");
-    // for (int b = 0; b < BATCH_SIZE; b++) {
-    //     for (int s = 0; s < SEQ_LEN; s++) {
-    //         for (int d = 0; d < D_MODEL; d++) {
-    //             for (int e = 0; e < EXPAND; e++) {
-    //                 xz[b * SEQ_LEN * D_INNER + s * D_INNER + d * EXPAND + e] =
-    //                     hidden_states[b * SEQ_LEN * D_MODEL + s * D_MODEL + d];
-    //             }
-    //         }
-    //     }
-    // }
+//     printf("Expanding hidden_states...\n");
+//     // for (int b = 0; b < BATCH_SIZE; b++) {
+//     //     for (int s = 0; s < SEQ_LEN; s++) {
+//     //         for (int d = 0; d < D_MODEL; d++) {
+//     //             for (int e = 0; e < EXPAND; e++) {
+//     //                 xz[b * SEQ_LEN * D_INNER + s * D_INNER + d * EXPAND + e] =
+//     //                     hidden_states[b * SEQ_LEN * D_MODEL + s * D_MODEL + d];
+//     //             }
+//     //         }
+//     //     }
+//     // }
 
-    #include <assert.h>
+//     #include <assert.h>
 
-// Within the expansion loop
-for (int b = 0; b < BATCH_SIZE; b++) {
-    for (int s = 0; s < SEQ_LEN; s++) {
-        for (int d = 0; d < D_MODEL; d++) {
-            for (int e = 0; e < EXPAND; e++) {
-                int xz_idx = b * SEQ_LEN * D_INNER + s * D_INNER + d * EXPAND + e;
-                int hidden_idx = b * SEQ_LEN * D_MODEL + s * D_MODEL + d;
-                assert(xz_idx < (BATCH_SIZE * SEQ_LEN * D_INNER));
-                assert(hidden_idx < (BATCH_SIZE * SEQ_LEN * D_MODEL));
-                xz[xz_idx] = hidden_states[hidden_idx];
-            }
-        }
-    }
-}
-    printf("First few values of xz after expansion:\n");
-    for (int i = 0; i < 10; i++) {
-        printf("%d ", xz[i]);
-    }
-    printf("\n");
+// // Within the expansion loop
+// for (int b = 0; b < BATCH_SIZE; b++) {
+//     for (int s = 0; s < SEQ_LEN; s++) {
+//         for (int d = 0; d < D_MODEL; d++) {
+//             for (int e = 0; e < EXPAND; e++) {
+//                 int xz_idx = b * SEQ_LEN * D_INNER + s * D_INNER + d * EXPAND + e;
+//                 int hidden_idx = b * SEQ_LEN * D_MODEL + s * D_MODEL + d;
+//                 assert(xz_idx < (BATCH_SIZE * SEQ_LEN * D_INNER));
+//                 assert(hidden_idx < (BATCH_SIZE * SEQ_LEN * D_MODEL));
+//                 xz[xz_idx] = hidden_states[hidden_idx];
+//             }
+//         }
+//     }
+// }
+//     printf("First few values of xz after expansion:\n");
+//     for (int i = 0; i < BATCH_SIZE * SEQ_LEN * D_INNER; i++) {
+//         printf("%d ", xz[i]);
+//     }
+//     printf("\n");
 
     printf("Performing matmul for in_proj...\n");
-    matmul(hidden_states, (int8_t*)in_proj_weights, xz, BATCH_SIZE * SEQ_LEN, X_PROJ_OUT, 1, SCALE_SHIFT);
+    // matmul(hidden_states, (int8_t*)in_proj_weights, xz, BATCH_SIZE, SEQ_LEN, D_INNER*2, SCALE_SHIFT);
+    matmul_expand(hidden_states, (int8_t*)in_proj_weights, xz, 
+              BATCH_SIZE, SEQ_LEN, D_INNER , 2, SCALE_SHIFT);
     printf("First few values of xz after matmul:\n");
     for (int i = 0; i < 10; i++) {
         printf("%d ", xz[i]);
@@ -106,7 +108,7 @@ for (int b = 0; b < BATCH_SIZE; b++) {
     printf("Splitting xz into x and z...\n");
     split_xz(xz, x, z, BATCH_SIZE, SEQ_LEN, D_INNER);
     printf("First few values of x:\n");
-    for (int i = 0; i < 10; i++) {
+    for (int i = 0; i < BATCH_SIZE * SEQ_LEN * D_INNER; i++) {
         printf("%d ", x[i]);
     }
     printf("\n");
@@ -118,7 +120,17 @@ for (int b = 0; b < BATCH_SIZE; b++) {
 
     //  !! PROBLEM: The following code is not working as expected. The output is not as expected. !!
     printf("Performing conv1d...\n");
-    conv1d(x, (int8_t*)conv1d_weights, conv_output, D_INNER, SEQ_LEN, D_CONV, SCALE_SHIFT);
+    // conv1d(x, (int8_t*)conv1d_weights, conv_output, D_INNER, SEQ_LEN, D_CONV, SCALE_SHIFT);
+    conv1d(
+    x,                       // Input tensor (e.g., `conv_output` from the previous step)
+    (int8_t*)conv1d_weights, // Weights for conv1d (flattened)
+    conv_output,             // Output tensor (pre-allocated)
+    BATCH_SIZE,              // Number of batches
+    D_INNER,                 // Number of input channels (D_INNER = D_MODEL * EXPAND)
+    SEQ_LEN,                 // Sequence length
+    D_CONV,                  // Kernel size for conv1d
+    SCALE_SHIFT              // Scaling factor for quantization
+);
     printf("First few values of conv_output after conv1d:\n");
     for (int i = 0; i < 16384; i++) {
         printf("%d ", conv_output[i]);
@@ -132,11 +144,17 @@ for (int b = 0; b < BATCH_SIZE; b++) {
         printf("%d ", conv_output[i]);
     }
     printf("\n");
-
-    // !! PROBLEM: The following code is not working as expected. The output is not as expected. !!
+    //random x_proj_output
+    for (int i = 0; i < BATCH_SIZE * SEQ_LEN * D_INNER; i++) {
+        x_proj_output[i] = -1;
+    }
 
     printf("Projecting conv_output with dt_proj_weights...\n");
-    matmul(conv_output, (int8_t*)dt_proj_weights, x_proj_output, BATCH_SIZE, SEQ_LEN, D_MODEL, SCALE_SHIFT);
+    // matmul(conv_output, (int8_t*)dt_proj_weights, x_proj_output, BATCH_SIZE, SEQ_LEN, D_MODEL, SCALE_SHIFT);
+    // matmul_and_concatenate(conv_output, x_proj_weights, x_proj_output, 
+    //                    BATCH_SIZE, SEQ_LEN, D_INNER, DT_RANK, D_STATE, SCALE_SHIFT);
+    matmul_and_concatenate(conv_output, (int8_t *)x_proj_weights, x_proj_output,
+                       BATCH_SIZE, SEQ_LEN, D_INNER, DT_RANK, D_STATE, SCALE_SHIFT);
     printf("First few values of x_proj_output after dt_proj_weights matmul:\n");
     for (int i = 0; i < (256); i++) {
         printf("%d ", x_proj_output[i]);
@@ -185,8 +203,8 @@ for (int b = 0; b < BATCH_SIZE; b++) {
     for (int b = 0; b < BATCH_SIZE; b++) {
         for (int s = 0; s < SEQ_LEN; s++) {
             for (int i = 0; i < D_STATE; i++) {
-                int inner_idx = (b * SEQ_LEN + s) % D_INNER; // Determine the corresponding inner index
-
+                // int inner_idx = (b * SEQ_LEN + s) % D_INNER; // Determine the corresponding inner index
+                int inner_idx = s % D_INNER;
                 // Compute dA using integer approximation
                 int16_t scaled_exp_A = approximate_exp(A_log[inner_idx][i]); // Scaled exponential value of A_log
                 int16_t value = (dt[b * SEQ_LEN * DT_RANK + s * DT_RANK] * scaled_exp_A) >> SCALE_SHIFT;

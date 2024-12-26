@@ -76,7 +76,7 @@ void write_output_to_file(const char* filename, int8_t* output, int size) {
 // Main function
 int main() {
     int input_size = BATCH_SIZE * SEQ_LEN * D_MODEL;
-    int output_size = BATCH_SIZE * SEQ_LEN * D_INNER;
+    int output_size = BATCH_SIZE * SEQ_LEN * D_MODEL;
 
     int8_t* input = malloc(input_size * sizeof(int8_t));
     int8_t* output = malloc(output_size * sizeof(int8_t));
@@ -100,6 +100,7 @@ int main() {
     printf("\n");
 
     initialize_weights();
+    initialize_exp_lut();
 
     forward(input, output);
 
@@ -107,7 +108,7 @@ int main() {
 
     // // print all values of output
     // printf("output size: %d\n", output_size);
-    // for (int i = 0; i < batch * seqlen * D_MODEL; i++) {
+    // for (int i = 0; i < BATCH_SIZE * SEQ_LEN * D_MODEL; i++) {
     //     printf("%d ", output[i]);
     // }
 

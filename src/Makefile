@@ -1,17 +1,17 @@
 CC = gcc
-CFLAGS = -Wall -O3
+CFLAGS = -Wall -g2 -O0
 
 SRC = main.c forward.c utils.c state.c model.c
 OBJ = $(SRC:.c=.o)
-TARGET = mamba_model
+TARGET = main
 
 all: $(TARGET)
 
 $(TARGET): $(OBJ)
-    $(CC) $(CFLAGS) -o $@ $^  # This line must be indented with a tab
+	$(CC) $(CFLAGS) -o $@ $^
 
 %.o: %.c
-    $(CC) $(CFLAGS) -c $<     # This line must also be indented with a tab
+	$(CC) $(CFLAGS) -c $< -o $@
 
 clean:
-    rm -f $(OBJ) $(TARGET)     # This line also requires a tab
+	rm -f $(OBJ) $(TARGET)
